@@ -16,7 +16,7 @@ def main():
     # Initialize Comet.ml
     logger = Experiment(comet_ml_key, project_name="ermas")
     logger.set_name(exp_id + "_" + str(args.random_seed))
-    logger.log_parameters()
+    logger.log_parameters(vars(args))
 
     # Load training environment
     env = TradingEnv()
