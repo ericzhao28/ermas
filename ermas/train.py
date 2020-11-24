@@ -1,58 +1,40 @@
+from comet_ml import Experiment, api
 from ermas.ppo import PPO, Memory
 from ermas.ermas_ppo import ERMAS_PPO
 from ermas.envs.trading_env import TradingEnv, action_dim_p, action_dim_a1, action_dim_a2, state_dim, max_timesteps
+from ermas.config import comet_ml_key
+from ermas.args import get_args
 
-############## Hyperparameters ##############
-n_latent_var = 64  # number of variables in hidden layer
-update_timestep = 2000  # update policy every n timesteps
-lr = 0.001
 betas = (0.9, 0.999)
-gamma = 0.995  # discount factor
-K_epochs = 4  # update policy for K epochs
-eps_clip = 0.2  # clip parameter for PPO
-random_seed = 1
-lambda_lr = 20
-beta = 0.3
-ermas_eps = -0.01
-eval_episodes = 2
-unilateral_episodes = 3
-main_episodes = 5
-num_loops = 10
 
 
 def main():
+    # Initialize Comet.ml
+    logger = Experiment(comet_ml_key, project_name="ermas")
+    logger.set_name(args.exp_id + "_" + args.random_seed)
+    logger.log_parameters()
+
+    # Load training environment
     env = TradingEnv()
-
-    history = {
-        "a1": [],
-        "a2": [],
-        "delta1": [],
-        "delta2": [],
-        "rewardp": [],
-        "reward1": [],
-        "reward2": [],
-    }
-
-    #############################################
-
     if random_seed:
-        torch.manual_seed(random_seed)
-        env.seed(random_seed)
+        torch.manual_seed(args.random_seed)
+        env.seed(args.random_seed)
 
+    # Initialize PPO agents
     memory = Memory()
     memory1 = Memory()
     memory2 = Memory()
     dmemory = Memory()
-    p_ppo = PPO(state_dim, action_dim_p, n_latent_var, lr, betas, gamma,
-                K_epochs, eps_clip, 0)
-    a1_ppo = ERMAS_PPO(state_dim, action_dim_a1, n_latent_var, lr, betas,
-                       gamma, K_epochs, eps_clip, 1)
-    a2_ppo = ERMAS_PPO(state_dim, action_dim_a2, n_latent_var, lr, betas,
-                       gamma, K_epochs, eps_clip, 2)
-    a1_mppo = PPO(state_dim, action_dim_a1, n_latent_var, lr, betas, gamma,
-                  K_epochs, eps_clip, 1)
-    a2_mppo = PPO(state_dim, action_dim_a2, n_latent_var, lr, betas, gamma,
-                  K_epochs, eps_clip, 2)
+    p_ppo = PPO(state_dim, action_dim_p, args.n_latent_var, args.lr, betas,
+                args.gamma, args.K_epochs, args.eps_clip, 0)
+    a1_ppo = ERMAS_PPO(state_dim, action_dim_a1, args.n_latent_var, args.lr,
+                       betas, args.gamma, args.K_epochs, args.eps_clip, 1)
+    a2_ppo = ERMAS_PPO(state_dim, action_dim_a2, args.n_latent_var, args.lr,
+                       betas, args.gamma, args.K_epochs, args.eps_clip, 2)
+    a1_mppo = PPO(state_dim, action_dim_a1, args.n_latent_var, args.lr, betas,
+                  args.gamma, args.K_epochs, args.eps_clip, 1)
+    a2_mppo = PPO(state_dim, action_dim_a2, args.n_latent_var, args.lr, betas,
+                  args.gamma, args.K_epochs, args.eps_clip, 2)
 
     a1_lambda = 5
     a2_lambda = 5
@@ -63,12 +45,12 @@ def main():
 
     # training loop
     i_episode = 0
-    for i_episode in range(num_loops):
+    for i_episode in range(args.num_loops):
         p_running_reward = 0.0
         a1_running_reward = 0.0
         a2_running_reward = 0.0
         # Main loop
-        for _ in range(main_episodes):
+        for _ in range(args.main_episodes):
             state = env.reset()
             for t in range(max_timesteps):
                 timestep += 1
@@ -109,24 +91,30 @@ def main():
 
             avg_length += t
 
-        avg_length = int(avg_length / (max_timesteps * main_episodes))
+        avg_length = int(avg_length / (max_timesteps * args.main_episodes))
         p_running_reward = float(
-            (p_running_reward / (max_timesteps * main_episodes)))
+            (p_running_reward / (max_timesteps * args.main_episodes)))
         a1_running_reward = float(
-            (a1_running_reward / (max_timesteps * main_episodes)))
+            (a1_running_reward / (max_timesteps * args.main_episodes)))
         a2_running_reward = float(
-            (a2_running_reward / (max_timesteps * main_episodes)))
+            (a2_running_reward / (max_timesteps * args.main_episodes)))
         print('Episode {} \t avg length: {} \t p reward: {}'.format(
             i_episode, avg_length, p_running_reward))
         history["rewardp"].append(p_running_reward)
         history["reward1"].append(a1_running_reward)
         history["reward2"].append(a2_running_reward)
 
+        for k, v in env.get_stats().items():
+            k = "Env " + k
+            if k not in history:
+                history[k] = []
+            history[k].append(v)
+
         # Before eval
         a1_running_reward = 0
         a2_running_reward = 0
         dmemory.clear_memory()
-        for _ in range(eval_episodes):
+        for _ in range(args.eval_episodes):
             state = env.reset()
             for t in range(max_timesteps):
                 timestep += 1
@@ -144,7 +132,7 @@ def main():
         # A1 loop
         a1_mppo.policy_old.load_state_dict(a1_ppo.policy.state_dict())
         a1_mppo.policy.load_state_dict(a1_ppo.policy.state_dict())
-        for _ in range(unilateral_episodes):
+        for _ in range(args.unilateral_episodes):
             state = env.reset()
             for t in range(max_timesteps):
                 timestep += 1
@@ -166,7 +154,7 @@ def main():
         # A2 loop
         a2_mppo.policy_old.load_state_dict(a2_ppo.policy.state_dict())
         a2_mppo.policy.load_state_dict(a2_ppo.policy.state_dict())
-        for _ in range(unilateral_episodes):
+        for _ in range(args.unilateral_episodes):
             state = env.reset()
             for t in range(max_timesteps):
                 timestep += 1
@@ -188,7 +176,7 @@ def main():
         # A1 eval
         a1_new_running_reward = 0
         dmemory.clear_memory()
-        for _ in range(eval_episodes):
+        for _ in range(args.eval_episodes):
             state = env.reset()
             for t in range(max_timesteps):
                 timestep += 1
@@ -205,7 +193,7 @@ def main():
         # A2 eval
         a2_new_running_reward = 0
         dmemory.clear_memory()
-        for _ in range(eval_episodes):
+        for _ in range(args.eval_episodes):
             state = env.reset()
             for t in range(max_timesteps):
                 timestep += 1
@@ -219,58 +207,72 @@ def main():
                     break
                 a2_new_running_reward += a2_reward
 
-        # Apply meta learning updates
+        ###### Apply meta learning updates
         new_state_dict = a1_mppo.policy.state_dict()
         old_state_dict = a1_ppo.policy.state_dict()
         for key in new_state_dict:
             old_state_dict[key] = (old_state_dict[key] -
-                                   beta * a1_lambda * new_state_dict[key]) / (
-                                       1 + beta * a1_lambda)
+                                   args.beta * a1_lambda * new_state_dict[key]
+                                   ) / (1 + args.beta * a1_lambda)
+        a1_ppo.policy.load_state_dict(old_state_dict)
+        a1_ppo.policy_old.load_state_dict(old_state_dict)
 
         new_state_dict = a2_mppo.policy.state_dict()
         old_state_dict = a2_ppo.policy.state_dict()
         for key in new_state_dict:
             old_state_dict[key] = (old_state_dict[key] -
-                                   beta * a2_lambda * new_state_dict[key]) / (
-                                       1 + beta * a2_lambda)
+                                   args.beta * a2_lambda * new_state_dict[key]
+                                   ) / (1 + args.beta * a2_lambda)
+        a2_ppo.policy.load_state_dict(old_state_dict)
+        a2_ppo.policy_old.load_state_dict(old_state_dict)
 
-        # Update lambda estimates
-        a1_lambda = a1_lambda + (lambda_lr / max_timesteps) * (
-            a1_new_running_reward - ermas_eps - a1_running_reward)
-        a2_lambda = a2_lambda + (lambda_lr / max_timesteps) * (
-            a2_new_running_reward - ermas_eps - a2_running_reward)
+        ##### Update lambda estimates
+        a1_lambda = a1_lambda + (args.lambda_lr / max_timesteps) * (
+            a1_new_running_reward - args.ermas_eps - a1_running_reward)
+        a2_lambda = a2_lambda + (args.lambda_lr / max_timesteps) * (
+            a2_new_running_reward - args.ermas_eps - a2_running_reward)
 
         a1_lambda = max(0, a1_lambda)
         a2_lambda = max(0, a2_lambda)
 
-        history["delta1"].append(a1_new_running_reward - a1_running_reward)
-        history["delta2"].append(a2_new_running_reward - a2_running_reward)
-        history["a1"].append(a1_lambda)
-        history["a2"].append(a2_lambda)
-        for k, v in env.get_stats().items():
-            k = "Env " + k
-            if k not in history:
-                history[k] = []
-            history[k].append(v)
-
-        # Log
+        ##### Log ERMAS stats
         a1_running_reward = float(
-            (a1_running_reward / (max_timesteps * eval_episodes)))
+            (a1_running_reward / (max_timesteps * args.eval_episodes)))
         a1_new_running_reward = float(
-            (a1_new_running_reward / (max_timesteps * eval_episodes)))
+            (a1_new_running_reward / (max_timesteps * args.eval_episodes)))
         print('Episode {} \t a1 reward: {}, {}'.format(i_episode,
                                                        a1_running_reward,
                                                        a1_new_running_reward))
-
         a2_running_reward = float(
-            (a2_running_reward / (max_timesteps * eval_episodes)))
+            (a2_running_reward / (max_timesteps * args.eval_episodes)))
         a2_new_running_reward = float(
-            (a2_new_running_reward / (max_timesteps * eval_episodes)))
+            (a2_new_running_reward / (max_timesteps * args.eval_episodes)))
         print('Episode {} \t a2 reward: {}, {}'.format(i_episode,
                                                        a2_running_reward,
                                                        a2_new_running_reward))
-
         print("Episode {} \t Lambdas".format(i_episode), a1_lambda, a2_lambda)
+
+        logger.log_metric("Lambda 1", a1_lambda, step=i_episode)
+        logger.log_metric("Lambda 2", a2_lambda, step=i_episode)
+        logger.log_metric("Delta 1",
+                          a1_new_running_reward - a1_running_reward,
+                          step=i_episode)
+        logger.log_metric("Delta 2",
+                          a2_new_running_reward - a2_running_reward,
+                          step=i_episode)
+
+        ##### Save model files
+        fname = "p_ppo_save_{}.dict".format(args.exp_id)
+        torch.save(p_ppo.policy.state_dict(), fname)
+        logger.log_asset(fname, overwrite=True, step=i_episode)
+
+        fname = "a1_ppo_save_{}.dict".format(args.exp_id)
+        torch.save(a1_ppo.policy.state_dict(), fname)
+        logger.log_asset(fname, overwrite=True, step=i_episode)
+
+        fname = "a2_ppo_save_{}.dict".format(args.exp_id)
+        torch.save(a2_ppo.policy.state_dict(), fname)
+        logger.log_asset(fname, overwrite=True, step=i_episode)
 
 
 if __name__ == "__main__":
