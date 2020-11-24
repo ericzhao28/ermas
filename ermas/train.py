@@ -3,6 +3,8 @@ from ermas.ppo import PPO, Memory
 from ermas.envs.trading_env import TradingEnv, action_dim_p, action_dim_a1, action_dim_a2, state_dim, max_timesteps
 from ermas.config import comet_ml_key
 from ermas.args import get_args
+from ermas.utils import crra_concavity
+import random
 import torch
 
 betas = (0.9, 0.999)
@@ -51,12 +53,21 @@ def main():
                 p_action = p_ppo.policy_old.act(state, memory)
                 a1_action = a1_ppo.policy_old.act(state, memory)
                 a2_action = a2_ppo.policy_old.act(state, memory)
+                if args.worst_action_prob > 0:
+                    if random.random() < args.worst_action_prob:
+                        a1_action = 100
+                    if random.random() < args.worst_action_prob:
+                        a2_action = 0
+
                 state, rewards, done = env.step(
                     [p_action, a1_action, a2_action])
                 p_reward, a1_reward, a2_reward = rewards
 
                 # Saving reward and is_terminal:
-                memory.rewards[0].append(p_reward)
+                if args.crra_sigma == -1:
+                    memory.rewards[0].append(p_reward)
+                else:
+                    memory.rewards[0].append(crra_concavity(p_reward, args.crra_sigma))
                 memory.rewards[1].append(a1_reward)
                 memory.rewards[2].append(a2_reward)
                 memory.is_terminals.append(done)
