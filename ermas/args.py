@@ -13,9 +13,10 @@ def get_args():
 
     parser = argparse.ArgumentParser()
 
-    # Add random seed value
+    # Add main values
     parser.add_argument('--random_seed', type=int, default=1)
     parser.add_argument('--exp_id', type=str, default="default")
+    parser.add_argument('--perturb', type=float, default=0)
 
     # PPO Params
     parser.add_argument('--n_latent_var', type=int, default=32)
