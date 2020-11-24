@@ -8,7 +8,6 @@ def get_args():
     """Argparse specs"""
 
     use_cuda = torch.cuda.is_available()
-    assert use_cuda
     device = 0 if use_cuda else "cpu"
     print("Default device", device)
 

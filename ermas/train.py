@@ -10,10 +10,11 @@ betas = (0.9, 0.999)
 
 def main():
     args = get_args()
+    exp_id = args.exp_id + "_" + str(args.random_seed)
 
     # Initialize Comet.ml
     logger = Experiment(comet_ml_key, project_name="ermas")
-    logger.set_name(args.exp_id + "_" + args.random_seed)
+    logger.set_name(exp_id + "_" + str(args.random_seed))
     logger.log_parameters(args)
 
     # Load training environment
@@ -86,19 +87,19 @@ def main():
         print('Episode {} \t Planner reward: {}'.format(
             i_episode, history["p_running_reward"]))
         for k, v in history.items():
-            history[k] = float(v / (max_timesteps * args.main_episodes))
+            v = float(v / (max_timesteps * args.main_episodes))
             logger.log_metric("Main_" + k, v, step=i_episode)
 
         ##### Save model files
-        fname = "p_ppo_save_{}.dict".format(args.exp_id)
+        fname = "saves/p_ppo_save_{}.dict".format(exp_id)
         torch.save(p_ppo.policy.state_dict(), fname)
         logger.log_asset(fname, overwrite=True, step=i_episode)
 
-        fname = "a1_ppo_save_{}.dict".format(args.exp_id)
+        fname = "saves/a1_ppo_save_{}.dict".format(exp_id)
         torch.save(a1_ppo.policy.state_dict(), fname)
         logger.log_asset(fname, overwrite=True, step=i_episode)
 
-        fname = "a2_ppo_save_{}.dict".format(args.exp_id)
+        fname = "saves/a2_ppo_save_{}.dict".format(exp_id)
         torch.save(a2_ppo.policy.state_dict(), fname)
         logger.log_asset(fname, overwrite=True, step=i_episode)
 
