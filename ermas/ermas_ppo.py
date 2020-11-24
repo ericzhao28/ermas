@@ -1,3 +1,10 @@
+import torch
+import torch.nn as nn
+from ermas.ppo import ActorCritic
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
 class ERMAS_PPO:
     def __init__(self, state_dim, action_dim, n_latent_var, lr, betas, gamma,
                  K_epochs, eps_clip, index):
