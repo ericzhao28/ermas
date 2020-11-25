@@ -16,15 +16,12 @@ def main():
 
     # Initialize Comet.ml
     logger = Experiment(comet_ml_key, project_name="new_ermas")
-    logger.set_name(exp_id)
+    logger.set_name("test_" + exp_id + "_" + str(args.perturb))
     logger.log_parameters(vars(args))
 
     # Load training environment
-    env = TradingEnv()
-
-    if args.da_random > 0:
-        env.consumer_happiness_random = args.da_random
-
+    consumer_happiness = 10 - 10 * args.perturb
+    env = TradingEnv(consumer_happiness)
     if args.random_seed:
         torch.manual_seed(args.random_seed)
         env.seed(args.random_seed)
@@ -38,19 +35,10 @@ def main():
     a2_ppo = PPO(state_dim, action_dim_a2, args.n_latent_var_consumer, args.lr, betas,
                  args.gamma, args.K_epochs, args.eps_clip, 2)
 
-    # Resume if needed
-    if args.resume_exp_id:
-        resume_exp_id = args.resume_exp_id + "_" + str(args.random_seed)
-        print("Resuming ", resume_exp_id)
-        fname = "saves/p_ppo_save_{}.dict".format(resume_exp_id)
-        p_ppo.policy.load_state_dict(torch.load(fname))
-        p_ppo.policy_old.load_state_dict(torch.load(fname))
-        fname = "saves/a1_ppo_save_{}.dict".format(resume_exp_id)
-        a1_ppo.policy.load_state_dict(torch.load(fname))
-        a1_ppo.policy_old.load_state_dict(torch.load(fname))
-        fname = "saves/a2_ppo_save_{}.dict".format(resume_exp_id)
-        a2_ppo.policy.load_state_dict(torch.load(fname))
-        a2_ppo.policy_old.load_state_dict(torch.load(fname))
+    # Load planner
+    fname = "altsaves/p_ppo_save_{}.dict".format(exp_id)
+    print(fname)
+    p_ppo.policy.load_state_dict(torch.load(fname, map_location="cpu"))
 
     # Main training loop
     timestep = 0
@@ -71,28 +59,18 @@ def main():
                 p_action = p_ppo.policy_old.act(state, memory)
                 a1_action = a1_ppo.policy_old.act(state, memory)
                 a2_action = a2_ppo.policy_old.act(state, memory)
-                if args.worst_action_prob > 0:
-                    if random.random() < args.worst_action_prob:
-                        a1_action = 9
-                    if random.random() < args.worst_action_prob:
-                        a2_action = 0
 
                 state, rewards, done = env.step(
                     [p_action, a1_action, a2_action])
                 p_reward, a1_reward, a2_reward = rewards
 
                 # Saving reward and is_terminal:
-                if args.crra_sigma == -1:
-                    memory.rewards[0].append(p_reward)
-                else:
-                    memory.rewards[0].append(crra_concavity(max(1e-2, p_reward), args.crra_sigma))
                 memory.rewards[1].append(a1_reward)
                 memory.rewards[2].append(a2_reward)
                 memory.is_terminals.append(done)
 
                 # Update if its time
                 if timestep % args.update_timestep == 0:
-                    p_ppo.update(memory)
                     a1_ppo.update(memory)
                     a2_ppo.update(memory)
                     memory.clear_memory()
@@ -120,15 +98,11 @@ def main():
             logger.log_metric("Main_" + k, v, step=i_episode)
 
         ##### Save model files
-        fname = "saves/p_ppo_save_{}.dict".format(exp_id)
-        torch.save(p_ppo.policy.state_dict(), fname)
-        logger.log_asset(fname, overwrite=True, step=i_episode)
-
-        fname = "saves/a1_ppo_save_{}.dict".format(exp_id)
+        fname = "altsaves/a1_ppo_save_test_{}.dict".format(exp_id)
         torch.save(a1_ppo.policy.state_dict(), fname)
         logger.log_asset(fname, overwrite=True, step=i_episode)
 
-        fname = "saves/a2_ppo_save_{}.dict".format(exp_id)
+        fname = "altsaves/a2_ppo_save_test_{}.dict".format(exp_id)
         torch.save(a2_ppo.policy.state_dict(), fname)
         logger.log_asset(fname, overwrite=True, step=i_episode)
 
