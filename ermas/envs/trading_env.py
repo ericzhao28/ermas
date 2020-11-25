@@ -1,6 +1,7 @@
 import numpy as np
 import random
 
+
 state_dim = 7
 max_timesteps = 1000  # max timesteps in one episode
 
@@ -65,7 +66,7 @@ class TradingEnv():
             self.counter / max_timesteps,
             seasonal_spending(self.counter + 1),
         ],
-                        dtype=np.float32)
+        dtype=np.float32)
 
     def get_stats(self):
         return {
