@@ -33,6 +33,7 @@ def parse_supplier_action(action):
 class TradingEnv():
     def __init__(self, consumer_happiness=10):
         self.consumer_happiness = consumer_happiness  # each macaron is ~ $10/happiness
+        self.consumer_happiness_random = False
 
     def reset(self):
         # Wealth
@@ -129,7 +130,10 @@ class TradingEnv():
         self.consumer_spent = min(self.consumer_inventory,
                                   seasonal_spending(self.counter))
         self.consumer_inventory -= self.consumer_spent
-        self.consumer_wealth += self.consumer_spent * self.consumer_happiness
+        if self.consumer_happiness_random:
+            self.consumer_wealth += self.consumer_spent * (10 + self.consumer_happiness_random * (random.random() - 0.5))
+        else:
+            self.consumer_wealth += self.consumer_spent * self.consumer_happiness
 
         ### Handle rewards
         ship_reward = self.shipping_wealth - old_shipping_wealth

@@ -30,6 +30,7 @@ def get_args():
 
     # Baselines
     parser.add_argument('--crra_sigma', type=float, default=-1)
+    parser.add_argument('--da_random', type=float, default=0)
     parser.add_argument('--worst_action_prob', type=float, default=0)
 
     # ERMAS Params

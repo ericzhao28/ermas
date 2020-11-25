@@ -21,6 +21,10 @@ def main():
 
     # Load training environment
     env = TradingEnv()
+
+    if args.da_random > 0:
+        env.consumer_happiness_random = args.da_random
+
     if args.random_seed:
         torch.manual_seed(args.random_seed)
         env.seed(args.random_seed)

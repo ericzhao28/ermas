@@ -42,7 +42,7 @@ def main():
 
     # Initialize lagrange multipliers
     a1_lambda = args.initial_lambda
-    a2_lambda = 5
+    a2_lambda = args.initial_lambda
 
     # Main training loop
     timestep = 0
