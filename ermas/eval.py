@@ -28,11 +28,11 @@ def main():
 
     # Initialize PPO agents
     memory = Memory()
-    p_ppo = PPO(state_dim, action_dim_p, args.n_latent_var, args.lr, betas,
+    p_ppo = PPO(state_dim, action_dim_p, args.n_latent_var_supplier, args.planner_lr, betas,
                 args.gamma, args.K_epochs, args.eps_clip, 0)
-    a1_ppo = PPO(state_dim, action_dim_a1, args.n_latent_var, args.lr, betas,
+    a1_ppo = PPO(state_dim, action_dim_a1, args.n_latent_var_shipping, args.planner_lr, betas,
                  args.gamma, args.K_epochs, args.eps_clip, 1)
-    a2_ppo = PPO(state_dim, action_dim_a2, args.n_latent_var, args.lr, betas,
+    a2_ppo = PPO(state_dim, action_dim_a2, args.n_latent_var_consumer, args.lr, betas,
                  args.gamma, args.K_epochs, args.eps_clip, 2)
 
     # Load planner
@@ -98,11 +98,11 @@ def main():
             logger.log_metric("Main_" + k, v, step=i_episode)
 
         ##### Save model files
-        fname = "saves/a1_ppo_save_{}.dict".format(exp_id)
+        fname = "saves/a1_ppo_save_test_{}.dict".format(exp_id)
         torch.save(a1_ppo.policy.state_dict(), fname)
         logger.log_asset(fname, overwrite=True, step=i_episode)
 
-        fname = "saves/a2_ppo_save_{}.dict".format(exp_id)
+        fname = "saves/a2_ppo_save_test_{}.dict".format(exp_id)
         torch.save(a2_ppo.policy.state_dict(), fname)
         logger.log_asset(fname, overwrite=True, step=i_episode)
 

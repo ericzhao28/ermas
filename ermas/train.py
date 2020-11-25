@@ -40,14 +40,15 @@ def main():
 
     # Resume if needed
     if args.resume_exp_id:
-        print("Resuming ", args.resume_exp_id)
-        fname = "saves/p_ppo_save_{}.dict".format(args.resume_exp_id)
+        resume_exp_id = args.resume_exp_id + "_" + str(args.random_seed)
+        print("Resuming ", resume_exp_id)
+        fname = "saves/p_ppo_save_{}.dict".format(resume_exp_id)
         p_ppo.policy.load_state_dict(torch.load(fname))
         p_ppo.policy_old.load_state_dict(torch.load(fname))
-        fname = "saves/a1_ppo_save_{}.dict".format(args.resume_exp_id)
+        fname = "saves/a1_ppo_save_{}.dict".format(resume_exp_id)
         a1_ppo.policy.load_state_dict(torch.load(fname))
         a1_ppo.policy_old.load_state_dict(torch.load(fname))
-        fname = "saves/a2_ppo_save_{}.dict".format(args.resume_exp_id)
+        fname = "saves/a2_ppo_save_{}.dict".format(resume_exp_id)
         a2_ppo.policy.load_state_dict(torch.load(fname))
         a2_ppo.policy_old.load_state_dict(torch.load(fname))
 
@@ -84,14 +85,14 @@ def main():
                 if args.crra_sigma == -1:
                     memory.rewards[0].append(p_reward)
                 else:
-                    memory.rewards[0].append(crra_concavity(p_reward, args.crra_sigma))
+                    memory.rewards[0].append(crra_concavity(max(1e-2, p_reward), args.crra_sigma))
                 memory.rewards[1].append(a1_reward)
                 memory.rewards[2].append(a2_reward)
                 memory.is_terminals.append(done)
 
                 # Update if its time
                 if timestep % args.update_timestep == 0:
-                    adv = p_ppo.update(memory)
+                    p_ppo.update(memory)
                     a1_ppo.update(memory)
                     a2_ppo.update(memory)
                     memory.clear_memory()
