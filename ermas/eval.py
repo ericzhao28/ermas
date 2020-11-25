@@ -36,9 +36,9 @@ def main():
                  args.gamma, args.K_epochs, args.eps_clip, 2)
 
     # Load planner
-    fname = "saves/p_ppo_save_{}.dict".format(exp_id)
+    fname = "altsaves/p_ppo_save_{}.dict".format(exp_id)
     print(fname)
-    p_ppo.policy.load_state_dict(torch.load(fname))
+    p_ppo.policy.load_state_dict(torch.load(fname, map_location="cpu"))
 
     # Main training loop
     timestep = 0
@@ -98,11 +98,11 @@ def main():
             logger.log_metric("Main_" + k, v, step=i_episode)
 
         ##### Save model files
-        fname = "saves/a1_ppo_save_test_{}.dict".format(exp_id)
+        fname = "altsaves/a1_ppo_save_test_{}.dict".format(exp_id)
         torch.save(a1_ppo.policy.state_dict(), fname)
         logger.log_asset(fname, overwrite=True, step=i_episode)
 
-        fname = "saves/a2_ppo_save_test_{}.dict".format(exp_id)
+        fname = "altsaves/a2_ppo_save_test_{}.dict".format(exp_id)
         torch.save(a2_ppo.policy.state_dict(), fname)
         logger.log_asset(fname, overwrite=True, step=i_episode)
 
