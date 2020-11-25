@@ -14,8 +14,8 @@ def main():
     exp_id = args.exp_id + "_" + str(args.random_seed)
 
     # Initialize Comet.ml
-    logger = Experiment(comet_ml_key, project_name="ermas")
-    logger.set_name(exp_id + "_" + str(args.random_seed))
+    logger = Experiment(comet_ml_key, project_name="new_ermas")
+    logger.set_name(exp_id)
     logger.log_parameters(vars(args))
 
     # Load training environment
@@ -29,16 +29,30 @@ def main():
     memory1 = Memory()
     memory2 = Memory()
     dmemory = Memory()
-    p_ppo = PPO(state_dim, action_dim_p, args.n_latent_var, args.lr, betas,
+    p_ppo = PPO(state_dim, action_dim_p, args.n_latent_var_supplier, args.planner_lr, betas,
                 args.gamma, args.K_epochs, args.eps_clip, 0)
-    a1_ppo = ERMAS_PPO(state_dim, action_dim_a1, args.n_latent_var, args.lr,
+    a1_ppo = ERMAS_PPO(state_dim, action_dim_a1, args.n_latent_var_shipping, args.planner_lr,
                        betas, args.gamma, args.K_epochs, args.eps_clip, 1)
-    a2_ppo = ERMAS_PPO(state_dim, action_dim_a2, args.n_latent_var, args.lr,
+    a2_ppo = ERMAS_PPO(state_dim, action_dim_a2, args.n_latent_var_consumer, args.lr,
                        betas, args.gamma, args.K_epochs, args.eps_clip, 2)
-    a1_mppo = PPO(state_dim, action_dim_a1, args.n_latent_var, args.lr, betas,
+    a1_mppo = PPO(state_dim, action_dim_a1, args.n_latent_var_shipping, args.planner_lr, betas,
                   args.gamma, args.K_epochs, args.eps_clip, 1)
-    a2_mppo = PPO(state_dim, action_dim_a2, args.n_latent_var, args.lr, betas,
+    a2_mppo = PPO(state_dim, action_dim_a2, args.n_latent_var_consumer, args.lr, betas,
                   args.gamma, args.K_epochs, args.eps_clip, 2)
+
+    # Resume if needed
+    if args.resume_exp_id:
+        resume_exp_id = args.resume_exp_id + "_" + str(args.random_seed)
+        print("Resuming ", resume_exp_id)
+        fname = "saves/p_ppo_save_{}.dict".format(resume_exp_id)
+        p_ppo.policy.load_state_dict(torch.load(fname))
+        p_ppo.policy_old.load_state_dict(torch.load(fname))
+        fname = "saves/a1_ppo_save_{}.dict".format(resume_exp_id)
+        a1_ppo.policy.load_state_dict(torch.load(fname))
+        a1_ppo.policy_old.load_state_dict(torch.load(fname))
+        fname = "saves/a2_ppo_save_{}.dict".format(resume_exp_id)
+        a2_ppo.policy.load_state_dict(torch.load(fname))
+        a2_ppo.policy_old.load_state_dict(torch.load(fname))
 
     # Initialize lagrange multipliers
     a1_lambda = args.initial_lambda
@@ -180,6 +194,10 @@ def main():
                 if done:
                     break
                 a1_new_running_reward += a1_reward
+        a1_running_reward = float(
+            (a1_running_reward / (max_timesteps * args.eval_episodes)))
+        a1_new_running_reward = float(
+            (a1_new_running_reward / (max_timesteps * args.eval_episodes)))
 
         # A2 eval
         a2_new_running_reward = 0
@@ -197,6 +215,10 @@ def main():
                 if done:
                     break
                 a2_new_running_reward += a2_reward
+        a2_running_reward = float(
+            (a2_running_reward / (max_timesteps * args.eval_episodes)))
+        a2_new_running_reward = float(
+            (a2_new_running_reward / (max_timesteps * args.eval_episodes)))
 
         ###### Apply meta learning updates
         new_state_dict = a1_mppo.policy.state_dict()
@@ -227,17 +249,9 @@ def main():
         a2_lambda = max(0, a2_lambda)
 
         ##### Log ERMAS stats
-        a1_running_reward = float(
-            (a1_running_reward / (max_timesteps * args.eval_episodes)))
-        a1_new_running_reward = float(
-            (a1_new_running_reward / (max_timesteps * args.eval_episodes)))
         print('Episode {} \t a1 reward: {}, {}'.format(i_episode,
                                                        a1_running_reward,
                                                        a1_new_running_reward))
-        a2_running_reward = float(
-            (a2_running_reward / (max_timesteps * args.eval_episodes)))
-        a2_new_running_reward = float(
-            (a2_new_running_reward / (max_timesteps * args.eval_episodes)))
         print('Episode {} \t a2 reward: {}, {}'.format(i_episode,
                                                        a2_running_reward,
                                                        a2_new_running_reward))
