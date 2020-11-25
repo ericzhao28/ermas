@@ -15,8 +15,8 @@ def main():
     exp_id = args.exp_id + "_" + str(args.random_seed)
 
     # Initialize Comet.ml
-    logger = Experiment(comet_ml_key, project_name="ermas")
-    logger.set_name(exp_id + "_" + str(args.random_seed))
+    logger = Experiment(comet_ml_key, project_name="new_ermas")
+    logger.set_name(exp_id)
     logger.log_parameters(vars(args))
 
     # Load training environment
@@ -59,7 +59,7 @@ def main():
                 a2_action = a2_ppo.policy_old.act(state, memory)
                 if args.worst_action_prob > 0:
                     if random.random() < args.worst_action_prob:
-                        a1_action = 100
+                        a1_action = 9
                     if random.random() < args.worst_action_prob:
                         a2_action = 0
 

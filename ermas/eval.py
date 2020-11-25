@@ -15,7 +15,7 @@ def main():
     exp_id = args.exp_id + "_" + str(args.random_seed)
 
     # Initialize Comet.ml
-    logger = Experiment(comet_ml_key, project_name="ermas")
+    logger = Experiment(comet_ml_key, project_name="new_ermas")
     logger.set_name("test_" + exp_id + "_" + str(args.perturb))
     logger.log_parameters(vars(args))
 

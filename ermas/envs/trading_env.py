@@ -9,19 +9,20 @@ season_period = 2 * 365 / (2 * 3.14)  # approx two year s
 consumption_max = 200  # 20 me's consuming 10 each a day
 seasonal_spending = lambda t: consumption_max * (np.cos(t / season_period) + 1
                                                  ) / 2
-consumer_inventory_max = 2000  # 20 fridges can hold 2000 macarons
-supplier_inventory_cost = 0.05  # 5 cents a day; can hold for half a year at $30
+consumer_inventory_max = 500  # 20 fridges can hold 2000 macarons
+supplier_inventory_cost = 0.1  # 5 cents a day; can hold for half a year at $30
 supplier_prod_inc = 8  # 80 macarons a day maximum
 supplier_prod_num = 10
-consumer_buy_inc = 50  # Buy up to 500 a day
-consumer_buy_num = 10
+consumer_buy_inc = 20  # Buy up to 500 a day
+consumer_buy_num = 15
 market_price_inc = 1  # Macarons cost up to $10 each (maxed out by happiness)
 market_price_num = 11
 shipping_cost_inc = 10  # $100/day shipping cost; if they buy $2000 a day, negligible
 shipping_cost_num = 10
+default_consumer_happiness = 10
 
-action_dim_p = shipping_cost_num
-action_dim_a1 = market_price_num * supplier_prod_num
+action_dim_p = market_price_num * supplier_prod_num
+action_dim_a1 = shipping_cost_num
 action_dim_a2 = consumer_buy_num
 
 
@@ -32,7 +33,7 @@ def parse_supplier_action(action):
 
 
 class TradingEnv():
-    def __init__(self, consumer_happiness=10):
+    def __init__(self, consumer_happiness=default_consumer_happiness):
         self.consumer_happiness = consumer_happiness  # each macaron is ~ $10/happiness
         self.consumer_happiness_random = False
 
@@ -84,7 +85,7 @@ class TradingEnv():
         }
 
     def step(self, actions):
-        ship_action, s_action, c_action = actions
+        s_action, ship_action, c_action = actions
 
         ### Translate actions
         c_purchases = c_action * consumer_buy_inc
@@ -111,10 +112,8 @@ class TradingEnv():
         # Handle shipping costs
         self.shipping_wealth += np.sqrt(
             self.consumer_bought) * self.shipping_price
-        self.supplier_wealth -= np.sqrt(
-            self.consumer_bought) * self.shipping_price / 2
         self.consumer_wealth -= np.sqrt(
-            self.consumer_bought) * self.shipping_price / 2
+            self.consumer_bought) * self.shipping_price
 
         ### Market updates
         # Update market prices
@@ -132,7 +131,7 @@ class TradingEnv():
                                   seasonal_spending(self.counter))
         self.consumer_inventory -= self.consumer_spent
         if self.consumer_happiness_random:
-            self.consumer_wealth += self.consumer_spent * (10 + self.consumer_happiness_random * (random.random() - 0.5))
+            self.consumer_wealth += self.consumer_spent * (default_consumer_happiness + self.consumer_happiness_random * (random.random() - 0.5))
         else:
             self.consumer_wealth += self.consumer_spent * self.consumer_happiness
 
@@ -140,7 +139,7 @@ class TradingEnv():
         ship_reward = self.shipping_wealth - old_shipping_wealth
         s_reward = self.supplier_wealth - old_supplier_wealth
         c_reward = self.consumer_wealth - old_consumer_wealth
-        rewards = (ship_reward, s_reward, c_reward)
+        rewards = (s_reward, ship_reward, c_reward)
 
         ### Handle timer
         done = self.counter > max_timesteps

@@ -15,7 +15,7 @@ def main():
 
     # Initialize Comet.ml
     logger = Experiment(comet_ml_key, project_name="ermas")
-    logger.set_name(exp_id + "_" + str(args.random_seed))
+    logger.set_name(exp_id)
     logger.log_parameters(vars(args))
 
     # Load training environment
@@ -180,6 +180,10 @@ def main():
                 if done:
                     break
                 a1_new_running_reward += a1_reward
+        a1_running_reward = float(
+            (a1_running_reward / (max_timesteps * args.eval_episodes)))
+        a1_new_running_reward = float(
+            (a1_new_running_reward / (max_timesteps * args.eval_episodes)))
 
         # A2 eval
         a2_new_running_reward = 0
@@ -197,6 +201,10 @@ def main():
                 if done:
                     break
                 a2_new_running_reward += a2_reward
+        a2_running_reward = float(
+            (a2_running_reward / (max_timesteps * args.eval_episodes)))
+        a2_new_running_reward = float(
+            (a2_new_running_reward / (max_timesteps * args.eval_episodes)))
 
         ###### Apply meta learning updates
         new_state_dict = a1_mppo.policy.state_dict()
@@ -227,17 +235,9 @@ def main():
         a2_lambda = max(0, a2_lambda)
 
         ##### Log ERMAS stats
-        a1_running_reward = float(
-            (a1_running_reward / (max_timesteps * args.eval_episodes)))
-        a1_new_running_reward = float(
-            (a1_new_running_reward / (max_timesteps * args.eval_episodes)))
         print('Episode {} \t a1 reward: {}, {}'.format(i_episode,
                                                        a1_running_reward,
                                                        a1_new_running_reward))
-        a2_running_reward = float(
-            (a2_running_reward / (max_timesteps * args.eval_episodes)))
-        a2_new_running_reward = float(
-            (a2_new_running_reward / (max_timesteps * args.eval_episodes)))
         print('Episode {} \t a2 reward: {}, {}'.format(i_episode,
                                                        a2_running_reward,
                                                        a2_new_running_reward))
