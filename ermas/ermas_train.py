@@ -41,8 +41,8 @@ def main():
                   args.gamma, args.K_epochs, args.eps_clip, 2)
 
     # Initialize lagrange multipliers
-    a1_lambda = 5
-    a2_lambda = 5
+    a1_lambda = args.initial_lambda
+    a2_lambda = args.initial_lambda
 
     # Main training loop
     timestep = 0

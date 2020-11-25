@@ -1,6 +1,7 @@
 import numpy as np
 import random
 
+
 state_dim = 7
 max_timesteps = 1000  # max timesteps in one episode
 
@@ -8,7 +9,6 @@ season_period = 2 * 365 / (2 * 3.14)  # approx two year s
 consumption_max = 200  # 20 me's consuming 10 each a day
 seasonal_spending = lambda t: consumption_max * (np.cos(t / season_period) + 1
                                                  ) / 2
-consumer_happiness = 10  # each macaron is ~ $10/happiness
 consumer_inventory_max = 2000  # 20 fridges can hold 2000 macarons
 supplier_inventory_cost = 0.05  # 5 cents a day; can hold for half a year at $30
 supplier_prod_inc = 8  # 80 macarons a day maximum
@@ -32,8 +32,9 @@ def parse_supplier_action(action):
 
 
 class TradingEnv():
-    def __init__(self):
-        pass
+    def __init__(self, consumer_happiness=10):
+        self.consumer_happiness = consumer_happiness  # each macaron is ~ $10/happiness
+        self.consumer_happiness_random = False
 
     def reset(self):
         # Wealth
@@ -65,7 +66,7 @@ class TradingEnv():
             self.counter / max_timesteps,
             seasonal_spending(self.counter + 1),
         ],
-                        dtype=np.float32)
+        dtype=np.float32)
 
     def get_stats(self):
         return {
@@ -130,7 +131,10 @@ class TradingEnv():
         self.consumer_spent = min(self.consumer_inventory,
                                   seasonal_spending(self.counter))
         self.consumer_inventory -= self.consumer_spent
-        self.consumer_wealth += self.consumer_spent * consumer_happiness
+        if self.consumer_happiness_random:
+            self.consumer_wealth += self.consumer_spent * (10 + self.consumer_happiness_random * (random.random() - 0.5))
+        else:
+            self.consumer_wealth += self.consumer_spent * self.consumer_happiness
 
         ### Handle rewards
         ship_reward = self.shipping_wealth - old_shipping_wealth
