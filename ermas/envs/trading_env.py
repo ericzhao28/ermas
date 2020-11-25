@@ -3,7 +3,7 @@ import random
 
 
 state_dim = 7
-max_timesteps = 1000  # max timesteps in one episode
+max_timesteps = 500  # max timesteps in one episode
 
 season_period = 2 * 365 / (2 * 3.14)  # approx two year s
 consumption_max = 200  # 20 me's consuming 10 each a day
@@ -17,7 +17,7 @@ consumer_buy_inc = 20  # Buy up to 500 a day
 consumer_buy_num = 15
 market_price_inc = 1  # Macarons cost up to $10 each (maxed out by happiness)
 market_price_num = 11
-shipping_cost_inc = 10  # $100/day shipping cost; if they buy $2000 a day, negligible
+shipping_cost_inc = 1  # $100/day shipping cost; if they buy $2000 a day, negligible
 shipping_cost_num = 10
 default_consumer_happiness = 10
 
@@ -82,6 +82,9 @@ class TradingEnv():
             "shipping wealth": self.shipping_wealth,
             "consumer bought": self.consumer_bought,
             "consumer spent": self.consumer_spent,
+            "purchase costs": self.purchase_costs,
+            "shipping costs": self.shipping_costs,
+            "consumption happiness": self.consumer_consumption_happiness,
         }
 
     def step(self, actions):
@@ -107,13 +110,14 @@ class TradingEnv():
         self.market_inventory -= self.consumer_bought
         self.consumer_inventory += self.consumer_bought
         # Handle product costs
-        self.supplier_wealth += self.consumer_bought * self.market_price
-        self.consumer_wealth -= self.consumer_bought * self.market_price
+        self.purchase_costs = self.consumer_bought * self.market_price
+        self.supplier_wealth += self.purchase_costs
+        self.consumer_wealth -= self.purchase_costs
         # Handle shipping costs
-        self.shipping_wealth += np.sqrt(
+        self.shipping_costs = np.sqrt(
             self.consumer_bought) * self.shipping_price
-        self.consumer_wealth -= np.sqrt(
-            self.consumer_bought) * self.shipping_price
+        self.shipping_wealth += self.shipping_costs
+        self.consumer_wealth -= self.shipping_costs
 
         ### Market updates
         # Update market prices
@@ -131,9 +135,10 @@ class TradingEnv():
                                   seasonal_spending(self.counter))
         self.consumer_inventory -= self.consumer_spent
         if self.consumer_happiness_random:
-            self.consumer_wealth += self.consumer_spent * (default_consumer_happiness + self.consumer_happiness_random * (random.random() - 0.5))
+            self.consumer_consumption_happiness = self.consumer_spent * (self.consumer_happiness + self.consumer_happiness_random * (random.random() - 0.5))
         else:
-            self.consumer_wealth += self.consumer_spent * self.consumer_happiness
+            self.consumer_consumption_happiness = self.consumer_spent * self.consumer_happiness
+        self.consumer_wealth += self.consumer_consumption_happiness
 
         ### Handle rewards
         ship_reward = self.shipping_wealth - old_shipping_wealth

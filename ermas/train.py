@@ -31,12 +31,25 @@ def main():
 
     # Initialize PPO agents
     memory = Memory()
-    p_ppo = PPO(state_dim, action_dim_p, args.n_latent_var, args.lr, betas,
+    p_ppo = PPO(state_dim, action_dim_p, args.n_latent_var_supplier, args.lr, betas,
                 args.gamma, args.K_epochs, args.eps_clip, 0)
-    a1_ppo = PPO(state_dim, action_dim_a1, args.n_latent_var, args.lr, betas,
+    a1_ppo = PPO(state_dim, action_dim_a1, args.n_latent_var_shipping, args.lr, betas,
                  args.gamma, args.K_epochs, args.eps_clip, 1)
-    a2_ppo = PPO(state_dim, action_dim_a2, args.n_latent_var, args.lr, betas,
+    a2_ppo = PPO(state_dim, action_dim_a2, args.n_latent_var_consumer, args.lr, betas,
                  args.gamma, args.K_epochs, args.eps_clip, 2)
+
+    # Resume if needed
+    if args.resume_exp_id:
+        print("Resuming ", args.resume_exp_id)
+        fname = "saves/p_ppo_save_{}.dict".format(args.resume_exp_id)
+        p_ppo.policy.load_state_dict(torch.load(fname))
+        p_ppo.policy_old.load_state_dict(torch.load(fname))
+        fname = "saves/a1_ppo_save_{}.dict".format(args.resume_exp_id)
+        a1_ppo.policy.load_state_dict(torch.load(fname))
+        a1_ppo.policy_old.load_state_dict(torch.load(fname))
+        fname = "saves/a2_ppo_save_{}.dict".format(args.resume_exp_id)
+        a2_ppo.policy.load_state_dict(torch.load(fname))
+        a2_ppo.policy_old.load_state_dict(torch.load(fname))
 
     # Main training loop
     timestep = 0

@@ -40,6 +40,19 @@ def main():
     a2_mppo = PPO(state_dim, action_dim_a2, args.n_latent_var, args.lr, betas,
                   args.gamma, args.K_epochs, args.eps_clip, 2)
 
+    # Resume if needed
+    if args.resume_exp_id:
+        print("Resuming ", args.resume_exp_id)
+        fname = "saves/p_ppo_save_{}.dict".format(args.resume_exp_id)
+        p_ppo.policy.load_state_dict(torch.load(fname))
+        p_ppo.policy_old.load_state_dict(torch.load(fname))
+        fname = "saves/a1_ppo_save_{}.dict".format(args.resume_exp_id)
+        a1_ppo.policy.load_state_dict(torch.load(fname))
+        a1_ppo.policy_old.load_state_dict(torch.load(fname))
+        fname = "saves/a2_ppo_save_{}.dict".format(args.resume_exp_id)
+        a2_ppo.policy.load_state_dict(torch.load(fname))
+        a2_ppo.policy_old.load_state_dict(torch.load(fname))
+
     # Initialize lagrange multipliers
     a1_lambda = args.initial_lambda
     a2_lambda = args.initial_lambda
