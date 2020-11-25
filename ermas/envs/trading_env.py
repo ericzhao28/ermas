@@ -5,15 +5,15 @@ import random
 state_dim = 7
 max_timesteps = 500  # max timesteps in one episode
 
-season_period = 2 * 365 / (2 * 3.14)  # approx two year s
+season_period = 365 / (2 * 3.14)  # approx two year s
 consumption_max = 200  # 20 me's consuming 10 each a day
-seasonal_spending = lambda t: consumption_max * (np.cos(t / season_period) + 1
+seasonal_spending = lambda t: consumption_max * (np.sin(t / season_period) + 1
                                                  ) / 2
 consumer_inventory_max = 500  # 20 fridges can hold 2000 macarons
-supplier_inventory_cost = 0.1  # 5 cents a day; can hold for half a year at $30
+supplier_inventory_cost = 0.3  # 5 cents a day; can hold for half a year at $30
 supplier_prod_inc = 8  # 80 macarons a day maximum
-supplier_prod_num = 10
-consumer_buy_inc = 20  # Buy up to 500 a day
+supplier_prod_num = 8
+consumer_buy_inc = 20  # Buy up to 300 a day
 consumer_buy_num = 15
 market_price_inc = 1  # Macarons cost up to $10 each (maxed out by happiness)
 market_price_num = 11
@@ -84,6 +84,7 @@ class TradingEnv():
             "consumer spent": self.consumer_spent,
             "purchase costs": self.purchase_costs,
             "shipping costs": self.shipping_costs,
+            "inventory costs": self.inventory_cost,
             "consumption happiness": self.consumer_consumption_happiness,
         }
 
@@ -126,7 +127,8 @@ class TradingEnv():
         self.next_market_price = new_market_price
         # Update supplier inventory
         self.market_inventory += supplier_prod
-        self.supplier_wealth -= self.market_inventory * supplier_inventory_cost
+        self.inventory_cost = self.market_inventory * supplier_inventory_cost
+        self.supplier_wealth -= self.inventory_cost
         # Update shipping
         self.shipping_price = new_shipping_price
 
