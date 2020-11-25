@@ -31,9 +31,9 @@ def main():
 
     # Initialize PPO agents
     memory = Memory()
-    p_ppo = PPO(state_dim, action_dim_p, args.n_latent_var_supplier, args.lr, betas,
+    p_ppo = PPO(state_dim, action_dim_p, args.n_latent_var_supplier, args.planner_lr, betas,
                 args.gamma, args.K_epochs, args.eps_clip, 0)
-    a1_ppo = PPO(state_dim, action_dim_a1, args.n_latent_var_shipping, args.lr, betas,
+    a1_ppo = PPO(state_dim, action_dim_a1, args.n_latent_var_shipping, args.planner_lr, betas,
                  args.gamma, args.K_epochs, args.eps_clip, 1)
     a2_ppo = PPO(state_dim, action_dim_a2, args.n_latent_var_consumer, args.lr, betas,
                  args.gamma, args.K_epochs, args.eps_clip, 2)
